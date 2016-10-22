@@ -70,6 +70,25 @@ var ImageFigure = React.createClass({
   }
 })
 
+//切换导航模块
+var NavItem = React.createClass({
+  clickHandler : function(e){
+    //如果按钮对应的图片是居中的
+    if(this.props.dataPos.isCenter){
+      this.props.reverse();
+    }else{
+      this.props.center();
+    }
+
+    e.stopPropagation();
+    e.preventDefault();
+  },
+  render : function(){
+    var className = 'nav-item' + (this.props.dataPos.isCenter? ' select': '') + (this.props.dataPos.isReverse? ' reverse' : '');
+    return <span className={className} onClick={this.clickHandler}></span>;
+  }
+})
+
 var AppComponent = React.createClass({
   //图片位置范围
   position : {
@@ -193,7 +212,7 @@ var AppComponent = React.createClass({
   render : function(){
 
     var imageFigures = [],
-      navItem = [];
+      navItems = [];
 
     imageDatas.forEach(function(item,index){
       //如果图片没有位置信息，为其设置默认的位置。在initialState设置值不会重新渲染
@@ -209,6 +228,8 @@ var AppComponent = React.createClass({
         }
       }
       imageFigures.push(<ImageFigure key={index} data={item} dataPos={this.state.imgChangeData[index]} ref={'imgFig'+index} reverse={this.reverseImg(index)} center={this.center(index)}/>);
+
+      navItems.push(<NavItem key={index} dataPos={this.state.imgChangeData[index]} reverse={this.reverseImg(index)} center={this.center(index)}/>);
     }.bind(this))
 
     return (
@@ -216,7 +237,9 @@ var AppComponent = React.createClass({
         <section className="img-sec">
           {imageFigures}
         </section>
-        <nav className="nav"></nav>
+        <nav className="nav">
+          {navItems}
+        </nav>
       </section>
     );
   },
