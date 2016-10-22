@@ -26,12 +26,24 @@ function getRandomDeg(){
   return (Math.random() - 0.5) > 0 ? deg : -deg;
 }
 
+
 //每张图片模块
 var ImageFigure = React.createClass({
+  clickHandler : function(e){
+    if(this.props.dataPos.isCenter){   //如果是居中图片，翻转
+      this.props.reverse();
+    }else{   //如果不是居中图片，居中
+      this.props.center();
+    }
+
+    e.stopPropagation();
+    e.preventDefault();
+  },
   render : function(){
+    var imgStyle = null;    //图片样式
     //如果有位置信息并且不为0
     if(this.props.dataPos.pos){
-      var imgStyle = this.props.dataPos.pos;
+      imgStyle = this.props.dataPos.pos;
     }
     //如果有旋转角度并且不为0
     if(this.props.dataPos.rotate){
@@ -39,17 +51,27 @@ var ImageFigure = React.createClass({
         imgStyle[item] = 'rotate(' + this.props.dataPos.rotate + 'deg)';
       },this)
     }
+    //如果图片居中，设置z-index
+    if(this.props.dataPos.isCenter){
+      imgStyle['zIndex'] = 11;
+    }
 
-    return <figure className="img-figure" style={imgStyle} ref="figure">
+    var className = 'img-figure' + (this.props.dataPos.isReverse? ' reverse' : '');
+
+    return <figure className={className} style={imgStyle} ref="figure" onClick={this.clickHandler}>
               <img src={this.props.data.imageUrl} title={this.props.data.title} alt={this.props.data.title}/>
               <figcaption>
                 <h2 className="img-title">{this.props.data.title}</h2>
+                <div className="img-back">
+                  <p>{this.props.data.desc}</p>
+                </div>
               </figcaption>
             </figure>;
   }
 })
 
 var AppComponent = React.createClass({
+  //图片位置范围
   position : {
     centerPos: {  //居中图片的取值范围
       left: 0,
@@ -65,8 +87,22 @@ var AppComponent = React.createClass({
       topY: [0, 0]
     }
   },
-  //设置图片位置角度函数
-  setImgPos : function(centerIndex){
+  /*
+   * 翻转图片函数
+   * @param index 要翻转的图片
+   * @return {Function} 返回闭包函数
+   * */
+  reverseImg : function(index){
+    return function(){
+      var imgChangeData = this.state.imgChangeData;
+      imgChangeData[index].isReverse = !imgChangeData[index].isReverse;
+      this.setState({
+        imgChangeData : imgChangeData
+      })
+    }.bind(this)
+  },
+  //设置图片位置角度翻转函数
+  setImg : function(centerIndex){
     //在此之前imgChangeData中已经有数据了，left和top全为0
     var imgChangeData = this.state.imgChangeData,
       position = this.position,
@@ -78,43 +114,46 @@ var AppComponent = React.createClass({
       hPosRangeY = hPosRange.y,
       vPosRangeTopY = vPosRange.topY,
       vPosRangeX = vPosRange.x;
-    console.log(position)
-    //获取居中图片的数据，居中图片不用设置rotate
+    //获取居中图片的数据，居中图片设置rotate市委了点击的时候重置
     var centerImgData = imgChangeData.splice(centerIndex,1);  //返回数组
-    centerImgData[0].pos = centerPos;
-    //规定上方图片为2张
+    centerImgData[0] = {
+      pos : centerPos,
+      rotate : 0,
+      isCenter : true
+    }
+    //规定上方图片为1张
     var topImgNum = 1,
       topImgIndex = Math.floor(Math.random()*(imgChangeData.length - topImgNum)),
       topImgDatas = imgChangeData.splice(topImgIndex, topImgNum);
     //为上方图片设置位置
-    topImgDatas.forEach(function(item){
-      item = {
+    topImgDatas.forEach(function(item, index){
+      topImgDatas[index] = {
         pos : {
           top: getRandomNum(vPosRangeTopY[0], vPosRangeTopY[1]),
           left: getRandomNum(vPosRangeX[0], vPosRangeX[1])
         },
-        rotate : getRandomDeg()
+        rotate : getRandomDeg(),
+        isCenter : false
       };
     })
+    // console.log(topImgDatas[0],topImgDatas[1])
     //设置两侧的图片位置
     for(let i = 0,len = imgChangeData.length,c = len / 2;i < len; i++){
       let hPosRangeX = null; //水平方向的取值范围
       //前半部分布局左边，后半部分布局右边
       if(i <= c){
           hPosRangeX = hPosRangeLeftSecX;
-        console.log(hPosRangeX)
       }else{
           hPosRangeX = hPosRangeRightSecX;
-        console.log(hPosRangeX)
       }
       imgChangeData[i] = {
         pos : {
           top: getRandomNum(hPosRangeY[0], hPosRangeY[1]),
           left: getRandomNum(hPosRangeX[0], hPosRangeX[1])
         },
-        rotate : getRandomDeg()
+        rotate : getRandomDeg(),
+        isCenter : false
       }
-      // console.log(getRandomNum(vPosRangeTopY[0], vPosRangeTopY[1]), getRandomNum(vPosRangeX[0], vPosRangeX[1]))
     }
     //为imgChangeData添加上方图片信息
     // topImgDatas.forEach(function(item,index){
@@ -130,12 +169,24 @@ var AppComponent = React.createClass({
     })
 
   },
+  /*
+  * 居中图片函数
+  * @param index 所点击图片的index
+  * @return {Function}
+  * */
+  center : function(index){
+    return function(){
+      this.setImg(index);
+    }.bind(this);
+  },
   getInitialState : function(){
     return {
       //存储每张图片的位置
       imgChangeData : [/*
         pos:{left:0,top:0},
         rotate : 0,
+        isReverse : false,
+        isCenter : false
       */]
     }
   },
@@ -153,9 +204,11 @@ var AppComponent = React.createClass({
             top : 0
           },
           rotate : 0,
+          isReverse : false,  //是否翻转
+          isCenter : false    //是否居中
         }
       }
-      imageFigures.push(<ImageFigure key={index} data={item} dataPos={this.state.imgChangeData[index]} ref={'imgFig'+index}/>);
+      imageFigures.push(<ImageFigure key={index} data={item} dataPos={this.state.imgChangeData[index]} ref={'imgFig'+index} reverse={this.reverseImg(index)} center={this.center(index)}/>);
     }.bind(this))
 
     return (
@@ -200,7 +253,8 @@ var AppComponent = React.createClass({
     this.position.vPosRange.x[0] = halfStageW - imgW;
     this.position.vPosRange.x[1] = halfStageW;
 
-    this.setImgPos(0);
+    //设置第一张图片居中
+    this.setImg(0);
   },
 })
 

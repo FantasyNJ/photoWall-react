@@ -3,6 +3,7 @@ html,body{
   width: 100%;
   height: 100%;
   background-color: #222;
+  overflow: hidden;
 }
 
 .app{
@@ -38,6 +39,13 @@ html,body{
       box-sizing: border-box;
       background-color: #fff;
       cursor: pointer;
+      //transform-origin: 50% 0 0;
+      transform-style: preserve-3d;
+      transition: transform .6s ease-in-out, left .6s ease-in-out, top .6s ease-in-out;
+
+      &.reverse{
+        transform:  rotateY(180deg);
+      }
 
       figcaption{
         text-align: center;
@@ -46,6 +54,29 @@ html,body{
           margin: 20px 0 0;
           color: #a7a0a2;
           font-size: 16px;
+        }
+
+        .img-back{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          padding: 50px 40px;
+          background-color: #fff;
+          box-sizing: border-box;
+          transform: rotateY(180deg) translateZ(1px);
+          backface-visibility: hidden;
+
+          color: #a7a0a2;
+          font-size: 22px;
+          line-height: 1.25;
+          text-align: left;
+
+          p {
+            margin: 0;
+          }
         }
       }
     }
